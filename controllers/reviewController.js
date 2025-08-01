@@ -1,6 +1,7 @@
 const catchAsync = require("../utils/catchAsync");
 const crypto = require("crypto");
 const Story = require("../model/reviewModel");
+const Company = require("../model/companyModel");
 
 function generateAnonymousId() {
   return "Anon-" + crypto.randomBytes(3).toString("hex"); // Example: Anon-a3f9c2
@@ -54,9 +55,21 @@ exports.createStory = catchAsync(async (req, res, next) => {
   if (!isAnonymous && !name) {
     return next(new AppError("Name is required when not anonymous", 400));
   }
-  const newStory = new Story({
+
+  // 1. Find company by name
+  const company = await Company.findOne({ name: companyName.trim() });
+
+  // 2. If company is not found, throw error
+  if (!company) {
+    return next(
+      new AppError("Please select a valid company from the list", 400)
+    );
+  }
+
+  // 3. Create new story
+  const newStory = await Story.create({
     vibe,
-    companyName,
+    companyName: company.name, // Ensure consistent capitalization
     isAnonymous,
     name: isAnonymous ? undefined : name,
     anonymousId: isAnonymous ? generateAnonymousId() : undefined,
@@ -65,11 +78,26 @@ exports.createStory = catchAsync(async (req, res, next) => {
     story,
   });
 
-  await newStory.save();
+  // 4. Prepare update object for company stats
+  const update = {
+    $push: { reviews: newStory._id },
+    $inc: { totalReviews: 1 },
+  };
+
+  if (vibe === "positive") {
+    update.$inc.positiveCount = 1;
+  } else if (vibe === "negative") {
+    update.$inc.negativeCount = 1;
+  } else if (vibe === "neutral") {
+    update.$inc.nutralCount = 1;
+  }
+
+  // 5. Update the company
+  await Company.findByIdAndUpdate(company._id, update);
 
   res.status(201).json({
     status: "success",
-    message: "Story created successfully",
+    message: "Story submitted successfully",
     data: {
       story: newStory,
     },

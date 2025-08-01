@@ -1,7 +1,6 @@
 const express = require("express");
 const reviewRouter = require("./routes/reviewRoutes");
-// const userRouter = require("./routes/userRoutes");
-// const eventRouter = require("./routes/eventRoutes");
+const companyRouter = require("./routes/companyRouter");
 const app = express();
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
@@ -63,6 +62,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/api/v1/reviews", reviewRouter);
+app.use("/api/v1/companies", companyRouter);
 // app.use("/api/v1/events", eventRouter);
 
 app.get("/", (req, res) => {
