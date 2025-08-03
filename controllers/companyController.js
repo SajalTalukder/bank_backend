@@ -1,5 +1,6 @@
 const catchAsync = require("../utils/catchAsync");
 const Company = require("../model/companyModel");
+const AppError = require("../utils/appError");
 
 exports.getAllCompanies = catchAsync(async (req, res, next) => {
   const companies = await Company.find().sort({ name: 1 });
@@ -103,6 +104,40 @@ exports.getALlCompaniesStats = catchAsync(async (req, res, next) => {
     count: paginatedCompanies.length,
     data: {
       companies: paginatedCompanies,
+    },
+  });
+});
+
+exports.getCompanyById = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const company = await Company.findById(id)
+    .populate({
+      path: "reviews",
+    })
+    .lean();
+
+  if (!company) {
+    return next(new AppError("No company found with that ID", 404));
+  }
+
+  const { totalReviews, negativeCount } = company;
+
+  const complaintRate =
+    totalReviews === 0
+      ? 0
+      : parseFloat(((negativeCount / totalReviews) * 100).toFixed(2));
+
+  const companyWithStats = {
+    ...company,
+    complaintRate,
+  };
+
+  res.status(200).json({
+    status: "success",
+    message: "Company details retrieved successfully",
+    data: {
+      company: companyWithStats,
     },
   });
 });
