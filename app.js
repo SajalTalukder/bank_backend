@@ -68,7 +68,7 @@ app.use("/api/v1/companies", companyRouter);
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "success",
-    message: "Just for testing",
+    message: "Just for testing new endpoint",
   });
 });
 
